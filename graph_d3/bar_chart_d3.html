@@ -1,0 +1,217 @@
+<html>
+    <head>
+    <title>DSC106 HW01 D3</title>
+    <script src="https://d3js.org/d3.v3.min.js"></script>
+    <style type="text/css">
+    svg {
+        font: 10px sans-serif;
+        shape-rendering: crispEdges;
+    }
+
+    .axis path,
+    .axis line {
+        fill: none;
+        stroke: #000;
+    }
+    
+    path.domain {
+        stroke: none;
+    }
+    
+    .y .tick line {
+        stroke: #ddd;
+    }
+
+    text{
+        font-family: "Times New Roman";
+        font: 16px  "Times New Roman";
+    }
+    </style>
+
+    </head>
+    <body>
+        <script type="text/javascript">
+        // Reference: http://bl.ocks.org/mstanaland/6100713
+            var data = [
+                { year: "2005", men_enrolled: 1607, women_enrolled: 2113},
+                { year: "2006", men_enrolled: 2031, women_enrolled: 2558},
+                { year: "2007", men_enrolled: 1838, women_enrolled: 2303},
+                { year: "2008", men_enrolled: 1893, women_enrolled: 2399},
+                { year: "2009", men_enrolled: 1695, women_enrolled: 2054},
+                { year: "2010", men_enrolled: 1858, women_enrolled: 2089},
+                { year: "2011", men_enrolled: 1583, women_enrolled: 1861},
+                { year: "2012", men_enrolled: 2328, women_enrolled: 2245},
+                { year: "2013", men_enrolled: 2616, women_enrolled: 2612},
+                { year: "2014", men_enrolled: 2538, women_enrolled: 2383},
+                { year: "2015", men_enrolled: 2711, women_enrolled: 2581},
+                { year: "2016", men_enrolled: 2669, women_enrolled: 3077},
+                { year: "2017", men_enrolled: 2725, women_enrolled: 2974},
+                { year: "2018", men_enrolled: 3220, women_enrolled: 3484},
+            ]
+
+            // Configuration about the plot
+            var margin = {top: 20, right: 160, bottom: 40, left: 40};
+            var width = 960 - margin.left - margin.right,
+                height = 500 - margin.top - margin.bottom;
+
+            var svg = d3.select("body")
+            .append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+
+            var parse = d3.time.format("%Y").parse;
+
+            var dataset = d3.layout.stack()(["men_enrolled", "women_enrolled"].map(function(enrolled) {
+                return data.map(function(d) {
+                return {x: parse(d.year), y: +d[enrolled]};
+                });
+            }));
+            
+            var x = d3.scale.ordinal()
+            .domain(dataset[0].map(function(d) { return d.x; }))
+            .rangeRoundBands([10, width], 0.02);
+
+            var y = d3.scale.linear()
+            .domain([0, d3.max(dataset, function(d) {  return d3.max(d, function(d) { return d.y0 + d.y; });  })])
+            .range([height, 100]);
+
+            var colors = ['#0288D1','#F06292'];
+
+            // Set axis
+            var yAxis = d3.svg.axis()
+            .scale(y)
+            .orient("left")
+            .ticks(6)
+            .tickSize(-width, 0, 1)
+            .tickFormat( function(d) { return d } );
+
+            var xAxis = d3.svg.axis()
+            .scale(x)
+            .orient("bottom")
+            .tickSize(0,0,2)
+            .tickFormat(d3.time.format("%Y"));
+
+            svg.append("g")
+            .attr("class", "y axis")
+            .call(yAxis);
+
+            svg.append("g")
+            .attr("class", "x axis")
+            .attr("transform", "translate(0," + height + ")")
+            .call(xAxis);
+
+            svg.append("text")
+            .attr("class","x label")
+            .attr("text-anchor","middle")
+            .attr("x",width-400)
+            .attr("y",height+35)
+            .text("Year");
+
+            svg.append("text")
+            .attr("class","y label")
+            .attr("text-anchor","end")
+            .attr("x",-130)
+            .attr("y",0)
+            .attr("dy",".75em")
+            .attr("transform","rotate(-90)")
+            .text("Number of Students");
+
+            svg.append("text")
+            .attr("x", (width / 2))             
+            .attr("y", margin.top)
+            .attr("text-anchor", "middle")  
+            .style("font-size", "16px") 
+            .text("UCSD Fulltime Student Enrollment"); 	
+              
+            var groups = svg.selectAll("g.cost")
+            .data(dataset)
+            .enter().append("g")
+            .attr("class", "cost")
+            .style("fill", function(d, i) { return colors[i]; });
+
+            svg.selectAll(".text")  		
+            .data(data)
+            .enter()
+            .append("text")
+            .attr("class","label")
+            .attr("x", function(d) { return (d.year - 2005)*x.rangeBand()+30})
+            .attr("y", function(d) { return y(d.men_enrolled)+40; })
+            .attr("dy",".75em")
+            .text(function(d) { return d.men_enrolled; });  
+
+            svg.selectAll(".text")  		
+            .data(data)
+            .enter()
+            .append("text")
+            .attr("class","label")
+            .attr("x", function(d) { return (d.year - 2005)*x.rangeBand()+30})
+            .attr("y", function(d) { return y(d.women_enrolled+d.men_enrolled)+40; })
+            .attr("dy",".75em")
+            .text(function(d) { return d.women_enrolled; });  
+
+
+            var rect = groups.selectAll("rect")
+            .data(function(d) { return d; })
+            .enter()
+            .append("rect")
+            .attr("x", function(d) { return x(d.x); })
+            .attr("y", function(d) { return y(d.y0 + d.y); })
+            .attr("height", function(d) { return y(d.y0) - y(d.y0 + d.y); })
+            .attr("width", x.rangeBand())
+            .on("mouseover", function() { tooltip.style("display", null); })
+            .on("mouseout", function() { tooltip.style("display", "none"); })
+            .on("mousemove", function(d) {
+                var xPosition = d3.mouse(this)[0] - 15;
+                var yPosition = d3.mouse(this)[1] - 25;
+                tooltip.attr("transform", "translate(" + xPosition + "," + yPosition + ")");
+                tooltip.select("text").text(d.y);
+            });
+
+            // Draw legend
+            var legend = svg.selectAll(".legend")
+            .data(colors)
+            .enter().append("g")
+            .attr("class", "legend")
+            .attr("transform", function(d, i) { return "translate(30," + i * 19 + ")"; });
+            
+            legend.append("rect")
+            .attr("x", width - 18)
+            .attr("width", 18)
+            .attr("height", 18)
+            .style("fill", function(d, i) {return colors.slice().reverse()[i];});
+            
+            legend.append("text")
+            .attr("x", width + 5)
+            .attr("y", 9)
+            .attr("dy", ".35em")
+            .style("text-anchor", "start")
+            .text(function(d, i) { 
+                switch (i) {
+                case 1: return "men_enrolled";
+                case 0: return "women_enrolled";
+                }
+            });
+
+            // Prep the tooltip bits, initial display is hidden
+            var tooltip = svg.append("g")
+            .attr("class", "tooltip")
+            .style("display", "none");
+                
+            tooltip.append("rect")
+            .attr("width", 30)
+            .attr("height", 20)
+            .attr("fill", "white")
+            .style("opacity", 0.5);
+
+            tooltip.append("text")
+            .attr("x", 15)
+            .attr("dy", "1.2em")
+            .style("text-anchor", "middle")
+            .attr("font-size", "12px")
+            .attr("font-weight", "bold");
+        </script>
+    </body>
+</html>     
